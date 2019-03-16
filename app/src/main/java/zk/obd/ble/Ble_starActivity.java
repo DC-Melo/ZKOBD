@@ -45,48 +45,25 @@ import zk.obd.R;
 //second
 public class Ble_starActivity extends Activity {
     int index=0;
-    int messagecount=1;
-    int messagenumber;
-    private Handler handler = new Handler()
-    {
-        @Override
-        public void handleMessage(Message msg) {
-            super.handleMessage(msg);
-            Log.e("---------","------msg");
-            if(msg.what==1)
-            {
-                if(index==0)
-                    return;
-                sendBleMessage(index-1);
-            }
-        }
-    };
-
+    int messagecount=5;
+   int messagenumber=0;
     Thread autoSendThread = null;
     private static final int REQUEST_ENABLE_BT = 2;
     private static final int REQUEST_SELECT_DEVICE = 1;
     private static final int UART_PROFILE_DISCONNECTED = 21;
     private static final int UART_PROFILE_CONNECTED = 20;
     private int mState = UART_PROFILE_DISCONNECTED;
-
     private ArrayAdapter<String> listAdapter;
     private BluetoothDevice mDevice = null;
     private  static UartService mService = null;
     private long sendValueNum = 0;
     private long recValueNum = 0;
-    /*private int[] config={
-            0x6B4,11,	0,0,0,	0,0,0,//vin
-            0x6B7,1,	1,6,10,	7,0,1,//KBI_Inhalt_Tank
-            0x6B7,1,	1,1,0,	20,0,1};//KBI_Kilometerstand
-    public int functionNum = 0;*/
-
     List<Signal> messageList=new ArrayList<>();
     Signal message1=new Signal();
     Signal message2=new Signal();
     Signal message3=new Signal();
     Signal message4=new Signal();
     Signal message5=new Signal();
-
     private Spinner spinnerInterval;
     // 页面
     TextView tv_car_start_check;
@@ -112,11 +89,12 @@ public class Ble_starActivity extends Activity {
     TextView voltage_number;
     TextView vin_number;
     TextView ble_State;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         requestWindowFeature(Window.FEATURE_NO_TITLE);
-
+        requestpermission();
         setContentView(R.layout.car_check);
         initView();
         initDate();
@@ -124,23 +102,10 @@ public class Ble_starActivity extends Activity {
         initClick();
         listAdapter = new ArrayAdapter<String>(this, R.layout.ble_message_detail);
         Init_service();// 初始化后台服务
-
-        if(ContextCompat.checkSelfPermission(Ble_starActivity.this, Manifest.permission.ACCESS_FINE_LOCATION)
-                != PackageManager.PERMISSION_GRANTED){//未开启定位权限
-            //开启定位权限,200是标识码
-            Toast.makeText(Ble_starActivity.this,"请为app开启定位权限",Toast.LENGTH_LONG).show();
-
-            ActivityCompat.requestPermissions(Ble_starActivity.this,new String[]{Manifest.permission.ACCESS_FINE_LOCATION},200);
-        }else{
-            Toast.makeText(Ble_starActivity.this,"已开启定位权限",Toast.LENGTH_LONG).show();
-        }
-
-
     }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        //tv_car_start_check.setText("读取");
         dialog_fragment.setVisibility(View.GONE);
         switch (requestCode) {
             case REQUEST_SELECT_DEVICE:
@@ -168,6 +133,20 @@ public class Ble_starActivity extends Activity {
                 break;
         }
     }
+    private Handler handler = new Handler()
+    {
+        @Override
+        public void handleMessage(Message msg) {
+            super.handleMessage(msg);
+            Log.e("---------","------msg");
+            if(msg.what==1)
+            {
+                sendBleMessage(index);
+                index++;
+            }
+        }
+    };
+
 
     private void Init_service() {
         System.out.println("Init_service");
@@ -238,19 +217,15 @@ public class Ble_starActivity extends Activity {
             // 有数据可以接收
             if ((action.equals(UartService.ACTION_DATA_AVAILABLE))) {
                 byte[] rxValue = intent.getByteArrayExtra(UartService.EXTRA_DATA);
-                messagecount=(int) rxValue[5]& 0xff;
-                if(messagecount<1)messagecount=1;
                 String Rx_str =Utils.bytesToHexString(rxValue) ;
-                String s_value;
-                if (messagecount <= messagenumber ){
-                    messageList.get(index).setCanRX(messagecount,rxValue);
-                }
-
-                if (messageList.get(index).getSignaltype()=="ASC"){
-                     s_value=messageList.get(index).getVIN();
+                messageList.get(index).setRx_Len(rxValue.length);
+                messageList.get(index).setCanRX(rxValue);
+                String Rx_value;
+                if (messageList.get(index).isASC()==true){
+                    Rx_value=messageList.get(index).getVIN();
                 }else{
                     double value=messageList.get(index).getSignalvalue();
-                    s_value=String.valueOf(value)+messageList.get(index).getUnit();
+                    Rx_value=String.valueOf(value)+messageList.get(index).getUnit();
                 }
 
 
@@ -266,34 +241,30 @@ public class Ble_starActivity extends Activity {
 //                    TextView ble_State;
                     case 0:
 
-                        settingDrawableTop(getApplicationContext(),vin_number,R.mipmap.car_check_scan_right,s_value,null);
+                        settingDrawableTop(getApplicationContext(),vin_number,R.mipmap.car_check_scan_right,Rx_value,null);
                     break;
                     case 1:
-                        settingDrawableTop(getApplicationContext(),mileage_number,R.mipmap.car_check_scan_right,s_value,null);
+                        settingDrawableTop(getApplicationContext(),mileage_number,R.mipmap.car_check_scan_right,Rx_value,null);
                         break;
                     case 2:
-                        settingDrawableTop(getApplicationContext(),oil_number,R.mipmap.car_check_scan_right,s_value,null);
+                        settingDrawableTop(getApplicationContext(),oil_number,R.mipmap.car_check_scan_right,Rx_value,null);
                         break;
                     case 3:
-                        settingDrawableTop(getApplicationContext(),voltage_number,R.mipmap.car_check_scan_right,s_value,null);
+                        settingDrawableTop(getApplicationContext(),voltage_number,R.mipmap.car_check_scan_right,Rx_value,null);
                         break;
                     case 4:
-                        settingDrawableTop(getApplicationContext(),car_number,R.mipmap.car_check_scan_right,s_value,null);
+                        settingDrawableTop(getApplicationContext(),car_number,R.mipmap.car_check_scan_right,Rx_value,null);
                         break;
 
                 }
-                if(messageList!=null&&index<5)
-                {
-
-                    handler.sendEmptyMessageAtTime(1,5000);
-                }
-
-                if(messagenumber==messagecount)
+                if(index>4 )  {
+                    stopAnimation();
+                }else{
+                    //handler.sendEmptyMessageAtTime(1,5000);
                     index++;
-                if(index>4 )  index=0;
-
+                    sendBleMessage(index);
+                }
                 Log.e("----------",""+Rx_str);
-//                listAdapter.add("[" + DateFormat.getTimeInstance().format(new Date()) + "] 收到0x: " + );
             }
             // 未知功能1Rx_str
             if (action.equals(UartService.ACTION_GATT_SERVICES_DISCOVERED)) {
@@ -340,7 +311,7 @@ public class Ble_starActivity extends Activity {
                 if(null==mService)
                     return;
         byte[] bytes=message1.getCanTX();
-        messagenumber=(int) bytes[5];
+        //messagenumber=(int) bytes[5];
 //        String s1=Utils.bytesToHexString(bytes);
         mService.writeRXCharacteristic(bytes);
 
@@ -361,16 +332,15 @@ public class Ble_starActivity extends Activity {
     //检测蓝牙是否开启并打开
     public void sendBleMessage(int i)
     {
-        Log.e("-----","----zou发送");
-        if(null==mService)
-            return;
-        Log.e("-----","----fasong");
-        byte[] bytes=messageList.get(i).getCanTX();
-        Log.e("-----","----fasong2");
-        String s1=Utils.bytesToHexString(bytes);
-        mService.writeRXCharacteristic(bytes);
-        Log.e("-----","----fasong3");
 
+        if(null==mService){
+            toastMessage("连接服务丢失");
+        }else{
+            byte[] bytes=messageList.get(i).getCanTX();
+            mService.writeRXCharacteristic(bytes);
+        }
+
+//String s1=Utils.bytesToHexString(bytes);
 //          if (mService.mConnectionState==2){
 //
 //                byte[] bytes=message1.getCanTX();
@@ -384,7 +354,19 @@ public class Ble_starActivity extends Activity {
 //        }
 
     }
+private void requestpermission(){
 
+    if(ContextCompat.checkSelfPermission(Ble_starActivity.this, Manifest.permission.ACCESS_FINE_LOCATION)
+            != PackageManager.PERMISSION_GRANTED){//未开启定位权限
+        //开启定位权限,200是标识码
+        Toast.makeText(Ble_starActivity.this,"请为app开启定位权限",Toast.LENGTH_LONG).show();
+
+        ActivityCompat.requestPermissions(Ble_starActivity.this,new String[]{Manifest.permission.ACCESS_FINE_LOCATION},200);
+    }else{
+        Toast.makeText(Ble_starActivity.this,"已开启定位权限",Toast.LENGTH_LONG).show();
+    }
+
+}
     //页面初始化代码
     private void initView() {
         tv_car_start_check=findViewById(R.id.tv_car_start_check);
@@ -427,8 +409,15 @@ public class Ble_starActivity extends Activity {
         animationDrawableBody.start();
         //车摆动
         leftCheckLight.startAnimation(translateAnimationLeft);
-
-
+    }
+    public void stopAnimation() {
+        leftCheckLight.setVisibility(View.GONE);
+        //车身扫描
+        //carCheckLightBody.setImageResource(R.drawable.car_check_light_body);
+        //animationDrawableBody = (AnimationDrawable) carCheckLightBody.getDrawable();
+        //animationDrawableBody.start();
+        //车摆动
+        leftCheckLight.startAnimation(translateAnimationLeft);
     }
 
     public void initClick() {
@@ -487,8 +476,6 @@ public class Ble_starActivity extends Activity {
                 //首先弹出转圈圈
                 dialog_fragment.setVisibility(View.VISIBLE);
                 //检车
-
-
                 showDialog();
                 cheCkAndStart();
             }
@@ -507,33 +494,37 @@ public class Ble_starActivity extends Activity {
 
     public void initDate()
     {
-
-        message1.setCanTX(new byte[] {0x41,0x50,0x50,0x06,(byte) 0xb4,0x4,(byte) 0xcc,(byte) 0xcc,0xa,0xd});
-        message1.setSignaltype("ASC");
+        message1.setCanTX(new byte[] {0x11});
+        //message1.setCanTX(new byte[] {0x41,0x50,0x50,0x06,(byte) 0xb4,0x4,(byte) 0xcc,(byte) 0xcc,0xa,0xd});
+        message1.setASC(true);
         message1.setStartbyte(2);
         message1.setLength(7);
-        message2.setCanTX(new byte[] {0x41,0x50,0x50,0x06,(byte) 0xb7,0x1,(byte) 0xcc,(byte) 0xcc,0xa,0xd});
+        message2.setCanTX(new byte[] {0x12});
+        //message2.setCanTX(new byte[] {0x41,0x50,0x50,0x06,(byte) 0xb7,0x1,(byte) 0xcc,(byte) 0xcc,0xa,0xd});
         message2.setStartbyte(2);
         message2.setStartbit(0);
         message2.setLength(20);
         message2.setUnit("km");
         message2.setOffset(0);
         message2.setFactor(1);
-        message3.setCanTX(new byte[] {0x41,0x50,0x50,0x03,(byte) 0xb7,0x1,(byte) 0xcc,(byte) 0xcc,0xa,0xd});
+        message3.setCanTX(new byte[] {0x13});
+        //message3.setCanTX(new byte[] {0x41,0x50,0x50,0x03,(byte) 0xb7,0x1,(byte) 0xcc,(byte) 0xcc,0xa,0xd});
         message3.setStartbyte(6);
         message3.setStartbit(0);
         message3.setLength(8);
         message3.setUnit("L");
         message3.setOffset(5);
         message3.setFactor(0.05);
-        message4.setCanTX(new byte[] {0x41,0x50,0x50,0x04,(byte) 0xb7,0x1,(byte) 0xcc,(byte) 0xcc,0xa,0xd});
+        message4.setCanTX(new byte[] {0x14});
+        //message4.setCanTX(new byte[] {0x41,0x50,0x50,0x04,(byte) 0xb7,0x1,(byte) 0xcc,(byte) 0xcc,0xa,0xd});
         message4.setStartbyte(6);
         message4.setStartbit(0);
         message4.setLength(8);
         message4.setUnit("V");
         message4.setOffset(5);
         message4.setFactor(0.05);
-        message5.setCanTX(new byte[] {0x41,0x50,0x50,0x05,(byte) 0xb7,0x1,(byte) 0xcc,(byte) 0xcc,0xa,0xd});
+        message5.setCanTX(new byte[] {0x15});
+        //message5.setCanTX(new byte[] {0x41,0x50,0x50,0x05,(byte) 0xb7,0x1,(byte) 0xcc,(byte) 0xcc,0xa,0xd});
         message5.setStartbyte(6);
         message5.setStartbit(0);
         message5.setLength(8);
@@ -588,14 +579,20 @@ public class Ble_starActivity extends Activity {
         } else {
             // 如果已经打开蓝牙则与远程蓝牙设备进行连接
             if(tv_car_start_check.getText().equals("连接")) {
-
                 Intent newIntent = new Intent(Ble_starActivity.this, DeviceListActivity.class);
                 startActivityForResult(newIntent, REQUEST_SELECT_DEVICE);
             }else if(tv_car_start_check.getText().equals("读取"))
             {
                 dialog_fragment.setVisibility(View.GONE);
-                checkBleIsConnectPermission();
-                startAnimation();
+                //checkBleIsConnectPermission();
+                if(null==mService) {
+                    toastMessage("service丢失");
+                }else{
+                    index=0;
+                    //handler.sendEmptyMessageAtTime(1,5000);
+                    sendBleMessage(index);
+                    startAnimation();
+                }
             }
 
         }

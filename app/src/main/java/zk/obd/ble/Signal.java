@@ -1,40 +1,53 @@
 package zk.obd.ble;
 
 public class Signal {
-    private byte[] canTX=new byte[10];
-    private byte[] canRX= new byte[72];//18*4: TML id in 8 2*CRC,0a,0d
-    private String signaltype="int";//0-int,1-ASC
+    private byte[] canTX=new byte[20];
+    private int Tx_Len=1;
+    private byte[] canRX= new byte[20];
+    private int Rx_Len=0;
+    private boolean isASC=false;//0-int,1-ASC
+    private String VIN="未读到VIN号";
     private int startbyte;
     private int startbit;
     private int length;
     private String unit;
     private double factor=1;
     private double offset=0;
-    private double signalvalue;
-    private String VIN;
+    private double signalvalue=0;
+
 
     public double getSignalvalue() {
         long num = 0;
-        for (int ix = 6; ix < 14; ++ix) {
+        for (int ix = 0; ix < Rx_Len; ++ix) {
             num <<= 8;
             num |= (canRX[ix] & 0xff);
         }
-        num<<=((startbyte-1)*8+startbit);
-        num>>=(64-length);
+/*        num<<=((startbyte-1)*8+startbit);
+        num>>=(64-length);*/
         signalvalue=(double)num*factor+offset;
         return signalvalue;
     }
 
     public String getVIN() {
         String RxVIN = new String(canRX);
-        VIN=RxVIN.substring(7, 14)+RxVIN.substring(7+18, 14+18)+RxVIN.substring(7+18*2, 14+18*2)+RxVIN.substring(7+18*3, 14+18*3);
+        if(Rx_Len>0) VIN=RxVIN.substring(0, Rx_Len);
+        else VIN="未读到VIN号";
+        //VIN=RxVIN.substring(7, 14)+RxVIN.substring(7+18, 14+18)+RxVIN.substring(7+18*2, 14+18*2)+RxVIN.substring(7+18*3, 14+18*3);
         return VIN;
     }
 
     public byte[] getCanTX() {
-        return canTX;
+        byte[] can_tx = new byte[Tx_Len];
+        System.arraycopy(canTX, 0, can_tx, 0, Tx_Len);
+        return can_tx;
+    }
+    public int getRx_Len() {
+        return Rx_Len;
     }
 
+    public void setRx_Len(int rx_Len) {
+        Rx_Len = rx_Len;
+    }
     public void setCanTX(byte[] canTX) {
         this.canTX = canTX;
     }
@@ -51,17 +64,16 @@ public class Signal {
         return canRX;
     }
 
-    public void setCanRX(int j,byte[] canRX) {
-        if (j<1) j=1;
-        System.arraycopy(canRX, 0, this.canRX, (j-1)*18, 18);
+    public void setCanRX(byte[] canRX) {
+        System.arraycopy( this.canRX, 0,canRX, 0, Rx_Len);
     }
 
-    public String getSignaltype() {
-        return signaltype;
+    public boolean isASC() {
+        return isASC;
     }
 
-    public void setSignaltype(String signaltype) {
-        this.signaltype = signaltype;
+    public void setASC(boolean ASC) {
+        isASC = ASC;
     }
 
     public int getStartbyte() {
