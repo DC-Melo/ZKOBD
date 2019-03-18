@@ -135,7 +135,7 @@ public class DeviceListActivity extends Activity {
                     mBluetoothAdapter.stopLeScan(mLeScanCallback);
                     cancelButton.setText(R.string.scan);
                 }
-            }, 10000);
+            }, 2000);
             // 进入if函数体之后首先会执行下面的三行代码，10秒钟以后会开启一个子线程，在子线程里面执行上面Runnable里面的内容
             mScanning = true;
             mBluetoothAdapter.startLeScan(mLeScanCallback);
@@ -158,8 +158,10 @@ public class DeviceListActivity extends Activity {
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
-                            Log.e("-----------","设备");
-                            addDevice(device, rssi);
+                            Log.e("-----------","设备"+device.getName());
+                            if(device.getName()!=null ){
+                                if (device.getName()!="") addDevice(device, rssi);
+                            }
                         }
                     });
                 }

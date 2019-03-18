@@ -30,7 +30,7 @@ public class Signal {
 
     public String getVIN() {
         String RxVIN = new String(canRX);
-        if(Rx_Len>0) VIN=RxVIN.substring(0, Rx_Len);
+        if(Rx_Len>1) VIN=RxVIN.substring(0, Rx_Len);
         else VIN="未读到VIN号";
         //VIN=RxVIN.substring(7, 14)+RxVIN.substring(7+18, 14+18)+RxVIN.substring(7+18*2, 14+18*2)+RxVIN.substring(7+18*3, 14+18*3);
         return VIN;
@@ -65,7 +65,7 @@ public class Signal {
     }
 
     public void setCanRX(byte[] canRX) {
-        System.arraycopy( this.canRX, 0,canRX, 0, Rx_Len);
+        System.arraycopy( canRX, 0,this.canRX, 0, Rx_Len);
     }
 
     public boolean isASC() {

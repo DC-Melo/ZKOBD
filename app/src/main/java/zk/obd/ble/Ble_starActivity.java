@@ -17,6 +17,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
+
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.content.LocalBroadcastManager;
@@ -34,7 +35,9 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.FileWriter;
 import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -133,16 +136,33 @@ public class Ble_starActivity extends Activity {
                 break;
         }
     }
-    private Handler handler = new Handler()
-    {
-        @Override
+  Handler handler=new Handler();
+/*    Handler handler = new Handler() {
         public void handleMessage(Message msg) {
-            super.handleMessage(msg);
-            Log.e("---------","------msg");
-            if(msg.what==1)
-            {
-                sendBleMessage(index);
+            switch (msg.what) {
+                case 0:
+                    //这里执行延时操作
+                    break;
+                default:
+
+                    break;
+            }
+        }
+
+    };*/
+
+    Runnable runnable=new Runnable(){
+        @Override
+        public void run() {
+            // TODO Auto-generated method stub
+            //要做的事情，这里再次调用此Runnable对象，以实现每两秒实现一次的定时器操作
+            if (index<4) {
                 index++;
+                sendBleMessage(index);
+                handler.postDelayed(this, 5000);
+            }else{
+                handler.removeCallbacks(this);
+                stopAnimation();
             }
         }
     };
@@ -218,6 +238,14 @@ public class Ble_starActivity extends Activity {
             if ((action.equals(UartService.ACTION_DATA_AVAILABLE))) {
                 byte[] rxValue = intent.getByteArrayExtra(UartService.EXTRA_DATA);
                 String Rx_str =Utils.bytesToHexString(rxValue) ;
+                if(index>4 )  {
+                    handler.removeCallbacks(runnable);
+                    stopAnimation();
+                    return;
+                }else{
+                    //handler.sendEmptyMessageAtTime(1,5000);
+                    handler.postDelayed(runnable, 2000);
+                }
                 messageList.get(index).setRx_Len(rxValue.length);
                 messageList.get(index).setCanRX(rxValue);
                 String Rx_value;
@@ -225,10 +253,8 @@ public class Ble_starActivity extends Activity {
                     Rx_value=messageList.get(index).getVIN();
                 }else{
                     double value=messageList.get(index).getSignalvalue();
-                    Rx_value=String.valueOf(value)+messageList.get(index).getUnit();
+                    Rx_value=String.valueOf(value).substring(0,3)+" "+messageList.get(index).getUnit();
                 }
-
-
                 // 收到发送
                 switch (index)
                 {
@@ -239,10 +265,11 @@ public class Ble_starActivity extends Activity {
 //                    TextView voltage_number;
 //                    TextView vin_number;
 //                    TextView ble_State;
+
                     case 0:
 
                         settingDrawableTop(getApplicationContext(),vin_number,R.mipmap.car_check_scan_right,Rx_value,null);
-                    break;
+                        break;
                     case 1:
                         settingDrawableTop(getApplicationContext(),mileage_number,R.mipmap.car_check_scan_right,Rx_value,null);
                         break;
@@ -257,13 +284,8 @@ public class Ble_starActivity extends Activity {
                         break;
 
                 }
-                if(index>4 )  {
-                    stopAnimation();
-                }else{
-                    //handler.sendEmptyMessageAtTime(1,5000);
-                    index++;
-                    sendBleMessage(index);
-                }
+
+
                 Log.e("----------",""+Rx_str);
             }
             // 未知功能1Rx_str
@@ -333,26 +355,14 @@ public class Ble_starActivity extends Activity {
     public void sendBleMessage(int i)
     {
 
-        if(null==mService){
+        if(null==mService || mService.mConnectionState!=2){
+            handler.removeCallbacks(runnable);
+            stopAnimation();
             toastMessage("连接服务丢失");
         }else{
             byte[] bytes=messageList.get(i).getCanTX();
             mService.writeRXCharacteristic(bytes);
         }
-
-//String s1=Utils.bytesToHexString(bytes);
-//          if (mService.mConnectionState==2){
-//
-//                byte[] bytes=message1.getCanTX();
-//                String s1=Utils.bytesToHexString(bytes);
-//                mService.writeRXCharacteristic(bytes);
-//                try {
-//                    listAdapter.add("[" + DateFormat.getTimeInstance().format(new Date()) + "] 发送0x: " +s1);
-//                } catch (Exception e) {
-//                    System.out.println(e.toString());
-//                }
-//        }
-
     }
 private void requestpermission(){
 
@@ -415,9 +425,9 @@ private void requestpermission(){
         //车身扫描
         //carCheckLightBody.setImageResource(R.drawable.car_check_light_body);
         //animationDrawableBody = (AnimationDrawable) carCheckLightBody.getDrawable();
-        //animationDrawableBody.start();
+        animationDrawableBody.stop();
         //车摆动
-        leftCheckLight.startAnimation(translateAnimationLeft);
+        //leftCheckLight.startAnimation(translateAnimationLeft);
     }
 
     public void initClick() {
@@ -589,12 +599,23 @@ private void requestpermission(){
                     toastMessage("service丢失");
                 }else{
                     index=0;
-                    //handler.sendEmptyMessageAtTime(1,5000);
                     sendBleMessage(index);
+                    //handler.sendEmptyMessageAtTime(1,5000);
+                    handler.postDelayed(runnable, 5000);
                     startAnimation();
                 }
             }
 
+        }
+    }
+    public static void stringTxt(String str){
+        try {
+            FileWriter fw = new FileWriter("/sdcard/ZKOBD" + "/VIN.txt");//SD卡中的路径
+            fw.flush();
+            fw.write(str);
+            fw.close();
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 }
