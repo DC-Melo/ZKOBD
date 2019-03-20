@@ -30,6 +30,8 @@ import android.view.animation.TranslateAnimation;
 import android.widget.ArrayAdapter;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
 import android.widget.RelativeLayout;
 import android.widget.Spinner;
 import android.widget.TextView;
@@ -85,7 +87,8 @@ public class Ble_starActivity extends Activity {
     Animation animation_rotate2_dialog;
     Animation animation_rotate3_dialog;
     FrameLayout dialog_fragment;
-
+    private RadioButton radioMQB,radioPQ,radioGM;
+    RadioGroup Platform;
     TextView mileage_number;
     TextView oil_number;
     TextView car_number;
@@ -397,6 +400,10 @@ private void requestpermission(){
         voltage_number=findViewById(R.id.voltage_txt_number);
         vin_number=findViewById(R.id.vin_txt_number);
         ble_State=findViewById(R.id.lanya);
+        radioMQB= (RadioButton) findViewById(R.id.radio_MQB);
+        radioPQ = (RadioButton) findViewById(R.id.radio_PQ);
+        radioGM = (RadioButton) findViewById(R.id.radio_GM);
+        Platform = (RadioGroup) findViewById(R.id.platform);
     }
 
     public void initAnimation() {
@@ -490,6 +497,35 @@ private void requestpermission(){
                 cheCkAndStart();
             }
         });
+        radioMQB.setOnClickListener(new View.OnClickListener() {
+
+            @Override
+            public void onClick(View v) {
+                toastMessage("MQB 平台");
+                initDate();
+            }
+        });
+        radioPQ.setOnClickListener(new View.OnClickListener() {
+
+            @Override
+            public void onClick(View v) {
+                toastMessage("PQ 平台");
+                initDate();
+            }
+        });
+        radioGM.setOnClickListener(new View.OnClickListener() {
+
+            @Override
+            public void onClick(View v) {
+                toastMessage("GM 平台");
+                initDate();
+            }
+        });
+
+
+
+
+
     }
 
     public void showDialog() {
@@ -504,12 +540,18 @@ private void requestpermission(){
 
     public void initDate()
     {
-        message1.setCanTX(new byte[] {0x11});
+
+
+        if (radioMQB.isChecked()) message1.setCanTX(new byte[] {0x11});
+        if (radioPQ.isChecked()) message1.setCanTX(new byte[] {0x21});
+        if (radioGM.isChecked()) message1.setCanTX(new byte[] {0x31});
         //message1.setCanTX(new byte[] {0x41,0x50,0x50,0x06,(byte) 0xb4,0x4,(byte) 0xcc,(byte) 0xcc,0xa,0xd});
         message1.setASC(true);
         message1.setStartbyte(2);
         message1.setLength(7);
-        message2.setCanTX(new byte[] {0x12});
+        if (radioMQB.isChecked()) message2.setCanTX(new byte[] {0x12});
+        if (radioPQ.isChecked()) message2.setCanTX(new byte[] {0x22});
+        if (radioGM.isChecked()) message2.setCanTX(new byte[] {0x32});
         //message2.setCanTX(new byte[] {0x41,0x50,0x50,0x06,(byte) 0xb7,0x1,(byte) 0xcc,(byte) 0xcc,0xa,0xd});
         message2.setStartbyte(2);
         message2.setStartbit(0);
@@ -517,7 +559,9 @@ private void requestpermission(){
         message2.setUnit("km");
         message2.setOffset(0);
         message2.setFactor(1);
-        message3.setCanTX(new byte[] {0x13});
+        if (radioMQB.isChecked()) message3.setCanTX(new byte[] {0x13});
+        if (radioPQ.isChecked()) message3.setCanTX(new byte[] {0x23});
+        if (radioGM.isChecked()) message3.setCanTX(new byte[] {0x33});
         //message3.setCanTX(new byte[] {0x41,0x50,0x50,0x03,(byte) 0xb7,0x1,(byte) 0xcc,(byte) 0xcc,0xa,0xd});
         message3.setStartbyte(6);
         message3.setStartbit(0);
@@ -525,7 +569,9 @@ private void requestpermission(){
         message3.setUnit("L");
         message3.setOffset(5);
         message3.setFactor(0.05);
-        message4.setCanTX(new byte[] {0x14});
+        if (radioMQB.isChecked())  message4.setCanTX(new byte[] {0x14});
+        if (radioPQ.isChecked())  message4.setCanTX(new byte[] {0x24});
+        if (radioGM.isChecked())  message4.setCanTX(new byte[] {0x34});
         //message4.setCanTX(new byte[] {0x41,0x50,0x50,0x04,(byte) 0xb7,0x1,(byte) 0xcc,(byte) 0xcc,0xa,0xd});
         message4.setStartbyte(6);
         message4.setStartbit(0);
@@ -533,7 +579,9 @@ private void requestpermission(){
         message4.setUnit("V");
         message4.setOffset(5);
         message4.setFactor(0.05);
-        message5.setCanTX(new byte[] {0x15});
+        if (radioMQB.isChecked())  message5.setCanTX(new byte[] {0x15});
+        if (radioPQ.isChecked())  message5.setCanTX(new byte[] {0x25});
+        if (radioGM.isChecked())  message5.setCanTX(new byte[] {0x35});
         //message5.setCanTX(new byte[] {0x41,0x50,0x50,0x05,(byte) 0xb7,0x1,(byte) 0xcc,(byte) 0xcc,0xa,0xd});
         message5.setStartbyte(6);
         message5.setStartbit(0);

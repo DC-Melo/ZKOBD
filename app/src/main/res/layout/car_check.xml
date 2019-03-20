@@ -3,6 +3,7 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="fill_parent"
     android:layout_height="fill_parent">
+
 <LinearLayout
     android:id="@+id/carLayout"
     android:layout_width="fill_parent"
@@ -44,6 +45,7 @@
                 android:layout_centerHorizontal="true"
                 android:background="@mipmap/car_check_circle" />
 
+
             <TextView
                 android:id="@+id/tv_car_start_check"
                 android:layout_width="fill_parent"
@@ -57,7 +59,36 @@
 
 
         </RelativeLayout>
+        <RadioGroup
+            android:id="@+id/platform"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:contentDescription="平台"
+            android:gravity="center"
+            android:background="@color/global_headcolor"
+            android:orientation="horizontal">
 
+
+
+            <RadioButton
+                android:id="@+id/radio_MQB"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:checked="true"
+                android:text="MQB    " />
+
+            <RadioButton
+                android:id="@+id/radio_PQ"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="PQ    " />
+
+            <RadioButton
+                android:id="@+id/radio_GM"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="GM   " />
+        </RadioGroup>
         <LinearLayout
             android:id="@+id/car_check_middle_layout"
             android:layout_width="fill_parent"
@@ -78,6 +109,7 @@
                     android:layout_height="wrap_content"
                     android:layout_gravity="center_vertical"
                     android:src="@mipmap/control_car_normal_bg" />
+
 
                 <RelativeLayout
                     android:id="@+id/scan_layout"
@@ -116,7 +148,6 @@
         </LinearLayout>
 
     </LinearLayout>
-
     <FrameLayout
         android:id="@+id/carcheck_bottom_content"
         android:layout_width="fill_parent"
@@ -166,9 +197,10 @@
                     />
 
                 <View
-                    android:layout_alignParentBottom="true"
                     android:layout_width="match_parent"
                     android:layout_height="1dp"
+                    android:layout_alignParentBottom="true"
+                    android:layout_marginBottom="0dp"
                     android:background="#6B6B6B"></View>
             </RelativeLayout>
 
