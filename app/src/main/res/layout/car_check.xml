@@ -75,19 +75,22 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:checked="true"
-                android:text="MQB    " />
+                android:text="MQB    "
+                android:textColor="@color/white"/>
 
             <RadioButton
                 android:id="@+id/radio_PQ"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="PQ    " />
+                android:text="PQ    "
+                android:textColor="@color/white"/>
 
             <RadioButton
                 android:id="@+id/radio_GM"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="GM   " />
+                android:text="GM   "
+                android:textColor="@color/white"/>
         </RadioGroup>
         <LinearLayout
             android:id="@+id/car_check_middle_layout"
@@ -203,7 +206,41 @@
                     android:layout_marginBottom="0dp"
                     android:background="#6B6B6B"></View>
             </RelativeLayout>
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:orientation="horizontal"
+                >
 
+                <TextView
+                    android:layout_centerVertical="true"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginLeft="5dp"
+                    android:text="车辆油量"
+                    android:textColor="#6B6B6B"
+                    android:textSize="18sp"
+                    />
+
+                <TextView
+                    android:layout_centerVertical="true"
+                    android:id="@+id/car_oil_txt_number"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentRight="true"
+                    android:layout_marginRight="23dp"
+                    android:text="4"
+                    android:textColor="#BEBEBE"
+                    android:textSize="16sp"
+                    />
+
+                <View
+                    android:layout_alignParentBottom="true"
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="#6B6B6B"></View>
+            </RelativeLayout>
             <RelativeLayout
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
@@ -241,41 +278,7 @@
                     android:background="#6B6B6B"></View>
             </RelativeLayout>
 
-            <RelativeLayout
-                android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_weight="1"
-                android:orientation="horizontal"
-                >
 
-                <TextView
-                    android:layout_centerVertical="true"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginLeft="5dp"
-                    android:text="车辆油量"
-                    android:textColor="#6B6B6B"
-                    android:textSize="18sp"
-                    />
-
-                <TextView
-                    android:layout_centerVertical="true"
-                    android:id="@+id/car_oil_txt_number"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_alignParentRight="true"
-                    android:layout_marginRight="23dp"
-                    android:text="4"
-                    android:textColor="#BEBEBE"
-                    android:textSize="16sp"
-                    />
-
-                <View
-                    android:layout_alignParentBottom="true"
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:background="#6B6B6B"></View>
-            </RelativeLayout>
 
             <RelativeLayout
                 android:layout_width="match_parent"

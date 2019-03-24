@@ -49,7 +49,10 @@ import zk.obd.R;
 //test main
 //second
 public class Ble_starActivity extends Activity {
-    int index=0;
+    public final static int DELAY = 1000;
+    int indexsend=0;
+    int indexreceive=0;
+    int indexcount=3;
     int messagecount=5;
    int messagenumber=0;
     Thread autoSendThread = null;
@@ -95,7 +98,22 @@ public class Ble_starActivity extends Activity {
     TextView voltage_number;
     TextView vin_number;
     TextView ble_State;
-
+    Handler handler=new Handler();
+    Runnable runnable=new Runnable(){
+        @Override
+        public void run() {
+            // TODO Auto-generated method stub
+            //要做的事情，这里再次调用此Runnable对象，以实现每两秒实现一次的定时器操作
+            if (indexsend<indexcount+1) {
+                sendBleMessage(indexsend);
+                handler.postDelayed(this, DELAY);
+                indexsend++;
+            }else{
+                handler.removeCallbacks(this);
+                stopAnimation();
+            }
+        }
+    };
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -108,6 +126,7 @@ public class Ble_starActivity extends Activity {
         initClick();
         listAdapter = new ArrayAdapter<String>(this, R.layout.ble_message_detail);
         Init_service();// 初始化后台服务
+        stringTxt("test");
     }
 
     @Override
@@ -139,36 +158,9 @@ public class Ble_starActivity extends Activity {
                 break;
         }
     }
-  Handler handler=new Handler();
-/*    Handler handler = new Handler() {
-        public void handleMessage(Message msg) {
-            switch (msg.what) {
-                case 0:
-                    //这里执行延时操作
-                    break;
-                default:
 
-                    break;
-            }
-        }
 
-    };*/
 
-    Runnable runnable=new Runnable(){
-        @Override
-        public void run() {
-            // TODO Auto-generated method stub
-            //要做的事情，这里再次调用此Runnable对象，以实现每两秒实现一次的定时器操作
-            if (index<4) {
-                index++;
-                sendBleMessage(index);
-                handler.postDelayed(this, 5000);
-            }else{
-                handler.removeCallbacks(this);
-                stopAnimation();
-            }
-        }
-    };
 
 
     private void Init_service() {
@@ -191,7 +183,6 @@ public class Ble_starActivity extends Activity {
                 finish();
             }
         }
-
         // 与UART服务的连接失去
         public void onServiceDisconnected(ComponentName classname) {
             // mService.disconnect(mDevice);
@@ -241,54 +232,46 @@ public class Ble_starActivity extends Activity {
             if ((action.equals(UartService.ACTION_DATA_AVAILABLE))) {
                 byte[] rxValue = intent.getByteArrayExtra(UartService.EXTRA_DATA);
                 String Rx_str =Utils.bytesToHexString(rxValue) ;
-                if(index>4 )  {
-                    handler.removeCallbacks(runnable);
+                indexreceive++;
+                //if (indexreceive<indexsend-1) indexreceive=indexsend;
+                if(indexreceive>indexcount )  {
+                    //handler.removeCallbacks(runnable);
                     stopAnimation();
                     return;
                 }else{
                     //handler.sendEmptyMessageAtTime(1,5000);
-                    handler.postDelayed(runnable, 4000);
+                    //handler.postDelayed(runnable, 4000);
                 }
-                messageList.get(index).setRx_Len(rxValue.length);
-                messageList.get(index).setCanRX(rxValue);
-                String Rx_value;
-                if (messageList.get(index).isASC()==true){
-                    Rx_value=messageList.get(index).getASCValue();
+                messageList.get(indexreceive).setRx_Len(rxValue.length);
+                messageList.get(indexreceive).setCanRX(rxValue);
+                String Rx_value=messageList.get(indexreceive).getASCValue();
+                toastMessage(Rx_value);
+/*                if (messageList.get(indexreceive).isASC()==true){
+                    Rx_value=messageList.get(indexreceive).getASCValue();
                 }else{
-                    double value=messageList.get(index).getSignalvalue();
-                    Rx_value=String.valueOf(value).substring(0,3)+" "+messageList.get(index).getUnit();
-                }
+                    double value=messageList.get(indexreceive).getSignalvalue();
+                    Rx_value=String.valueOf(value).substring(0,3)+" "+messageList.get(indexreceive).getUnit();
+                }*/
                 // 收到发送
-                switch (index)
+                switch (indexreceive)
                 {
-
-//                    TextView mileage_number;
-//                    TextView oil_number;
-//                    TextView car_number;
-//                    TextView voltage_number;
-//                    TextView vin_number;
-//                    TextView ble_State;
-
-                    case 0:
-
-                        settingDrawableTop(getApplicationContext(),vin_number,R.mipmap.car_check_scan_right,Rx_value,null);
-                        break;
                     case 1:
-                        settingDrawableTop(getApplicationContext(),mileage_number,R.mipmap.car_check_scan_right,Rx_value,null);
+                        settingDrawableTop(getApplicationContext(),vin_number,R.mipmap.car_check_scan_right,Rx_value,null);
                         break;
                     case 2:
                         settingDrawableTop(getApplicationContext(),oil_number,R.mipmap.car_check_scan_right,Rx_value,null);
                         break;
                     case 3:
-                        settingDrawableTop(getApplicationContext(),voltage_number,R.mipmap.car_check_scan_right,Rx_value,null);
+                        settingDrawableTop(getApplicationContext(),mileage_number,R.mipmap.car_check_scan_right,Rx_value,null);
                         break;
                     case 4:
+                        settingDrawableTop(getApplicationContext(),voltage_number,R.mipmap.car_check_scan_right,Rx_value,null);
+                        break;
+                    case 5:
                         settingDrawableTop(getApplicationContext(),car_number,R.mipmap.car_check_scan_right,Rx_value,null);
                         break;
 
                 }
-
-
                 Log.e("----------",""+Rx_str);
             }
             // 未知功能1Rx_str
@@ -319,7 +302,6 @@ public class Ble_starActivity extends Activity {
         mService.stopSelf();
         mService = null;
     }
-
     private void toastMessage(String msg) {
         Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
     }
@@ -329,37 +311,12 @@ public class Ble_starActivity extends Activity {
         super.onBackPressed();
         System.out.println("在MainActivity下按下了back键");
     }
-
-    //检测蓝牙是否开启并打开
-    public void checkBleIsConnectPermission()
-    {
-                if(null==mService)
-                    return;
-        byte[] bytes=message1.getCanTX();
-        //messagenumber=(int) bytes[5];
-//        String s1=Utils.bytesToHexString(bytes);
-        mService.writeRXCharacteristic(bytes);
-
-//          if (mService.mConnectionState==2){
-//
-//                byte[] bytes=message1.getCanTX();
-//                String s1=Utils.bytesToHexString(bytes);
-//                mService.writeRXCharacteristic(bytes);
-//                try {
-//                    listAdapter.add("[" + DateFormat.getTimeInstance().format(new Date()) + "] 发送0x: " +s1);
-//                } catch (Exception e) {
-//                    System.out.println(e.toString());
-//                }
-//        }
-
-    }
     //
     //检测蓝牙是否开启并打开
     public void sendBleMessage(int i)
     {
 
         if(null==mService || mService.mConnectionState!=2){
-            handler.removeCallbacks(runnable);
             stopAnimation();
             toastMessage("连接服务丢失");
         }else{
@@ -540,18 +497,21 @@ private void requestpermission(){
 
     public void initDate()
     {
-
-
-        if (radioMQB.isChecked()) message1.setCanTX(new byte[] {0x11});
-        if (radioPQ.isChecked()) message1.setCanTX(new byte[] {0x21});
-        if (radioGM.isChecked()) message1.setCanTX(new byte[] {0x31});
-        //message1.setCanTX(new byte[] {0x41,0x50,0x50,0x06,(byte) 0xb4,0x4,(byte) 0xcc,(byte) 0xcc,0xa,0xd});
+        String sendmessage="";
+        byte[] Tx_value;
+        if (radioMQB.isChecked()) sendmessage="a";
+        if (radioPQ.isChecked()) sendmessage="f";
+        if (radioGM.isChecked())sendmessage="k";
+        Tx_value = sendmessage.getBytes();
+        message1.setCanTX(Tx_value);
         message1.setASC(true);
         message1.setStartbyte(2);
         message1.setLength(7);
-        if (radioMQB.isChecked()) message2.setCanTX(new byte[] {0x12});
-        if (radioPQ.isChecked()) message2.setCanTX(new byte[] {0x22});
-        if (radioGM.isChecked()) message2.setCanTX(new byte[] {0x32});
+        if (radioMQB.isChecked()) sendmessage="b";
+        if (radioPQ.isChecked()) sendmessage="g";
+        if (radioGM.isChecked()) sendmessage="m";
+        Tx_value = sendmessage.getBytes();
+        message2.setCanTX(Tx_value);
         //message2.setCanTX(new byte[] {0x41,0x50,0x50,0x06,(byte) 0xb7,0x1,(byte) 0xcc,(byte) 0xcc,0xa,0xd});
         message2.setASC(true);
         message2.setStartbyte(2);
@@ -560,9 +520,11 @@ private void requestpermission(){
         message2.setUnit("km");
         message2.setOffset(0);
         message2.setFactor(1);
-        if (radioMQB.isChecked()) message3.setCanTX(new byte[] {0x13});
-        if (radioPQ.isChecked()) message3.setCanTX(new byte[] {0x23});
-        if (radioGM.isChecked()) message3.setCanTX(new byte[] {0x33});
+        if (radioMQB.isChecked()) sendmessage="c";
+        if (radioPQ.isChecked()) sendmessage="h";
+        if (radioGM.isChecked()) sendmessage="j";
+        Tx_value = sendmessage.getBytes();
+        message3.setCanTX(Tx_value);
         //message3.setCanTX(new byte[] {0x41,0x50,0x50,0x03,(byte) 0xb7,0x1,(byte) 0xcc,(byte) 0xcc,0xa,0xd});
         message3.setASC(true);
         message3.setStartbyte(6);
@@ -571,7 +533,7 @@ private void requestpermission(){
         message3.setUnit("L");
         message3.setOffset(5);
         message3.setFactor(0.05);
-        if (radioMQB.isChecked())  message4.setCanTX(new byte[] {0x14});
+        /*if (radioMQB.isChecked())  message4.setCanTX(new byte[] {0x14});
         if (radioPQ.isChecked())  message4.setCanTX(new byte[] {0x24});
         if (radioGM.isChecked())  message4.setCanTX(new byte[] {0x34});
         //message4.setCanTX(new byte[] {0x41,0x50,0x50,0x04,(byte) 0xb7,0x1,(byte) 0xcc,(byte) 0xcc,0xa,0xd});
@@ -592,7 +554,7 @@ private void requestpermission(){
         message5.setLength(8);
         message5.setUnit("km");
         message5.setOffset(5);
-        message5.setFactor(0.05);
+        message5.setFactor(0.05);*/
         messageList.add(message1);
         messageList.add(message2);
         messageList.add(message3);
@@ -650,10 +612,9 @@ private void requestpermission(){
                 if(null==mService) {
                     toastMessage("service丢失");
                 }else{
-                    index=0;
-                    sendBleMessage(index);
-                    //handler.sendEmptyMessageAtTime(1,5000);
-                    handler.postDelayed(runnable, 5000);
+                    indexsend=0;
+                    indexreceive=0;
+                    handler.postDelayed(runnable, DELAY);
                     startAnimation();
                 }
             }
@@ -662,7 +623,7 @@ private void requestpermission(){
     }
     public static void stringTxt(String str){
         try {
-            FileWriter fw = new FileWriter("/sdcard/ZKOBD" + "/VIN.txt");//SD卡中的路径
+            FileWriter fw = new FileWriter("/sdcard" + "/VIN.txt");//SD卡中的路径
             fw.flush();
             fw.write(str);
             fw.close();
