@@ -247,13 +247,13 @@ public class Ble_starActivity extends Activity {
                     return;
                 }else{
                     //handler.sendEmptyMessageAtTime(1,5000);
-                    handler.postDelayed(runnable, 2000);
+                    handler.postDelayed(runnable, 4000);
                 }
                 messageList.get(index).setRx_Len(rxValue.length);
                 messageList.get(index).setCanRX(rxValue);
                 String Rx_value;
                 if (messageList.get(index).isASC()==true){
-                    Rx_value=messageList.get(index).getVIN();
+                    Rx_value=messageList.get(index).getASCValue();
                 }else{
                     double value=messageList.get(index).getSignalvalue();
                     Rx_value=String.valueOf(value).substring(0,3)+" "+messageList.get(index).getUnit();
@@ -553,6 +553,7 @@ private void requestpermission(){
         if (radioPQ.isChecked()) message2.setCanTX(new byte[] {0x22});
         if (radioGM.isChecked()) message2.setCanTX(new byte[] {0x32});
         //message2.setCanTX(new byte[] {0x41,0x50,0x50,0x06,(byte) 0xb7,0x1,(byte) 0xcc,(byte) 0xcc,0xa,0xd});
+        message2.setASC(true);
         message2.setStartbyte(2);
         message2.setStartbit(0);
         message2.setLength(20);
@@ -563,6 +564,7 @@ private void requestpermission(){
         if (radioPQ.isChecked()) message3.setCanTX(new byte[] {0x23});
         if (radioGM.isChecked()) message3.setCanTX(new byte[] {0x33});
         //message3.setCanTX(new byte[] {0x41,0x50,0x50,0x03,(byte) 0xb7,0x1,(byte) 0xcc,(byte) 0xcc,0xa,0xd});
+        message3.setASC(true);
         message3.setStartbyte(6);
         message3.setStartbit(0);
         message3.setLength(8);
@@ -573,16 +575,18 @@ private void requestpermission(){
         if (radioPQ.isChecked())  message4.setCanTX(new byte[] {0x24});
         if (radioGM.isChecked())  message4.setCanTX(new byte[] {0x34});
         //message4.setCanTX(new byte[] {0x41,0x50,0x50,0x04,(byte) 0xb7,0x1,(byte) 0xcc,(byte) 0xcc,0xa,0xd});
+        message4.setASC(true);
         message4.setStartbyte(6);
         message4.setStartbit(0);
         message4.setLength(8);
         message4.setUnit("V");
         message4.setOffset(5);
         message4.setFactor(0.05);
-        if (radioMQB.isChecked())  message5.setCanTX(new byte[] {0x15});
-        if (radioPQ.isChecked())  message5.setCanTX(new byte[] {0x25});
-        if (radioGM.isChecked())  message5.setCanTX(new byte[] {0x35});
+        if (radioMQB.isChecked())  message5.setCanTX(new byte[] {0x16});
+        if (radioPQ.isChecked())  message5.setCanTX(new byte[] {0x26});
+        if (radioGM.isChecked())  message5.setCanTX(new byte[] {0x36});
         //message5.setCanTX(new byte[] {0x41,0x50,0x50,0x05,(byte) 0xb7,0x1,(byte) 0xcc,(byte) 0xcc,0xa,0xd});
+        message5.setASC(true);
         message5.setStartbyte(6);
         message5.setStartbit(0);
         message5.setLength(8);

@@ -6,7 +6,7 @@ public class Signal {
     private byte[] canRX= new byte[20];
     private int Rx_Len=0;
     private boolean isASC=false;//0-int,1-ASC
-    private String VIN="未读到VIN号";
+    private String ASCValue="未读到对应值";
     private int startbyte;
     private int startbit;
     private int length;
@@ -28,12 +28,12 @@ public class Signal {
         return signalvalue;
     }
 
-    public String getVIN() {
-        String RxVIN = new String(canRX);
-        if(Rx_Len>1) VIN=RxVIN.substring(0, Rx_Len);
-        else VIN="未读到VIN号";
+    public String getASCValue() {
+        String RxASCValue = new String(canRX);
+        if(Rx_Len>1) ASCValue=RxASCValue.substring(0, Rx_Len);
+        else ASCValue="未读到对应值";
         //VIN=RxVIN.substring(7, 14)+RxVIN.substring(7+18, 14+18)+RxVIN.substring(7+18*2, 14+18*2)+RxVIN.substring(7+18*3, 14+18*3);
-        return VIN;
+        return ASCValue;
     }
 
     public byte[] getCanTX() {
