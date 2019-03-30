@@ -37,7 +37,9 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.File;
 import java.io.FileWriter;
+import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -50,6 +52,7 @@ import zk.obd.R;
 //second
 public class Ble_starActivity extends Activity {
     public final static int DELAY = 1000;
+    public static final int EXTERNAL_STORAGE_REQ_CODE = 10 ;
     int indexsend=0;
     int indexreceive=0;
     int indexcount=3;
@@ -126,7 +129,9 @@ public class Ble_starActivity extends Activity {
         initClick();
         listAdapter = new ArrayAdapter<String>(this, R.layout.ble_message_detail);
         Init_service();// 初始化后台服务
-        stringTxt("test");
+        File file = new File("/sdcard/add.txt");
+//        addTxtToFileBuffered(file,"追加的内容");
+        addTxtToFileWrite(file,"filewrite");
     }
 
     @Override
@@ -161,7 +166,25 @@ public class Ble_starActivity extends Activity {
 
 
 
-
+    private void addTxtToFileWrite(File file, String content) {
+        FileWriter writer = null;
+        try {
+            //FileWriter(file, true),第二个参数为true是追加内容，false是覆盖
+            writer = new FileWriter(file, true);
+            writer.write(content);//换行.write(content);
+            writer.write("\n");
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                if (writer != null) {
+                    writer.close();
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
 
     private void Init_service() {
         System.out.println("Init_service");
@@ -334,6 +357,15 @@ private void requestpermission(){
         ActivityCompat.requestPermissions(Ble_starActivity.this,new String[]{Manifest.permission.ACCESS_FINE_LOCATION},200);
     }else{
         Toast.makeText(Ble_starActivity.this,"已开启定位权限",Toast.LENGTH_LONG).show();
+    }
+
+    int permission = ActivityCompat.checkSelfPermission(this,
+            Manifest.permission.WRITE_EXTERNAL_STORAGE);
+
+    if (permission != PackageManager.PERMISSION_GRANTED) {
+        // 请求权限
+        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                EXTERNAL_STORAGE_REQ_CODE);
     }
 
 }
@@ -621,14 +653,6 @@ private void requestpermission(){
 
         }
     }
-    public static void stringTxt(String str){
-        try {
-            FileWriter fw = new FileWriter("/sdcard" + "/VIN.txt");//SD卡中的路径
-            fw.flush();
-            fw.write(str);
-            fw.close();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
+
+
 }
