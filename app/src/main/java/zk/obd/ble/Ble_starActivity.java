@@ -21,6 +21,10 @@ import android.os.Message;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.content.LocalBroadcastManager;
+import android.support.v7.widget.DefaultItemAnimator;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.OrientationHelper;
+import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.View;
 import android.view.Window;
@@ -28,6 +32,7 @@ import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.view.animation.TranslateAnimation;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.RadioButton;
@@ -47,15 +52,18 @@ import java.util.Date;
 import java.util.List;
 
 import zk.obd.R;
+import zk.obd.adapter.DividerGridItemDecoration;
+import zk.obd.adapter.InformationCarAdapter;
+import zk.obd.been.CarInformationBean;
 
 //test main
 //second
 public class Ble_starActivity extends Activity {
-    public final static int DELAY = 1000;
+    public final static int DELAY = 2000;
     public static final int EXTERNAL_STORAGE_REQ_CODE = 10 ;
     int indexsend=0;
     int indexreceive=0;
-    int indexcount=3;
+    private static final int TASKTIMES=3;
     int messagecount=5;
    int messagenumber=0;
     Thread autoSendThread = null;
@@ -69,12 +77,7 @@ public class Ble_starActivity extends Activity {
     private  static UartService mService = null;
     private long sendValueNum = 0;
     private long recValueNum = 0;
-    List<Signal> messageList=new ArrayList<>();
-    Signal message1=new Signal();
-    Signal message2=new Signal();
-    Signal message3=new Signal();
-    Signal message4=new Signal();
-    Signal message5=new Signal();
+   // List<Signal> messageList=new ArrayList<>();
     private Spinner spinnerInterval;
     // 页面
     TextView tv_car_start_check;
@@ -95,11 +98,24 @@ public class Ble_starActivity extends Activity {
     FrameLayout dialog_fragment;
     private RadioButton radioMQB,radioPQ,radioGM;
     RadioGroup Platform;
-    TextView mileage_number;
-    TextView oil_number;
-    TextView car_number;
-    TextView voltage_number;
-    TextView vin_number;
+    private RecyclerView mRecycleview;
+    private InformationCarAdapter informationCarAdapter;
+    private Button cancle_mode;
+
+    private Button set_mode;
+    List<CarInformationBean> carDataList = new ArrayList();
+//    TextView mileage_number;
+//    TextView oil_number;
+//    TextView car_number;
+//    TextView voltage_number;
+//    TextView vin_number;
+
+    CarInformationBean SigVIN=new CarInformationBean("VIN","车辆识别号");
+    CarInformationBean SigODO=new CarInformationBean("ODO","里程");
+    CarInformationBean SigTank=new CarInformationBean("Tank","油量");
+    CarInformationBean SigSetTRA=new CarInformationBean("TRA","运输模式");
+    CarInformationBean SigCancelTRA=new CarInformationBean("UnTRA","非运输模式");
+
     TextView ble_State;
     Handler handler=new Handler();
     Runnable runnable=new Runnable(){
@@ -107,13 +123,50 @@ public class Ble_starActivity extends Activity {
         public void run() {
             // TODO Auto-generated method stub
             //要做的事情，这里再次调用此Runnable对象，以实现每两秒实现一次的定时器操作
-            if (indexsend<indexcount+1) {
-                sendBleMessage(indexsend);
-                handler.postDelayed(this, DELAY);
-                indexsend++;
-            }else{
+            int i=0;
+            while(i<carDataList.size()){
+                if(carDataList.get(i).isActive()) {
+                    carDataList.get(i).setActive(false);
+                    break;
+                }
+                i++;
+            }
+            int j=i+1;
+            int k=j%carDataList.size();
+            boolean sendreturn=false;
+            while(j<carDataList.size()+i+1){
+                k=j%carDataList.size();
+                if(!carDataList.get(k).isReceived() && carDataList.get(k).getSendtimes()<TASKTIMES) {
+                    carDataList.get(k).setActive(true);
+                    sendreturn=sendBleMessage(carDataList.get(k));
+                    carDataList.get(k).setSendtimes(carDataList.get(k).getSendtimes()+1);
+                    handler.postDelayed(this, DELAY);
+                    break;
+                }
+                j++;
+            }
+            if(!sendreturn  || j==(carDataList.size()+i+1) ){
+                boolean allreceived=true;
+                DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                String record=df.format(new Date());
+                for(int m=0;m<carDataList.size();m++){
+                    allreceived&=carDataList.get(m).isReceived();
+                    record+="\t"+carDataList.get(m).getASCValue();
+                };
+                if(allreceived){
+                    toastMessage("完成读取");
+                    File file = new File("/sdcard/vin.csv");
+                    //addTxtToFileBuffered(file,"追加的内容");
+                    addTxtToFileWrite(file,record);
+                    file = new File("/sdcard/vin.txt");
+                    //addTxtToFileBuffered(file,"追加的内容");
+                    addTxtToFileWrite(file,record);
+                }else{
+                    toastMessage("未完全读取");
+                }
                 handler.removeCallbacks(this);
                 stopAnimation();
+
             }
         }
     };
@@ -124,14 +177,11 @@ public class Ble_starActivity extends Activity {
         requestpermission();
         setContentView(R.layout.car_check);
         initView();
-        initDate();
+        initData();
         initAnimation();
         initClick();
         listAdapter = new ArrayAdapter<String>(this, R.layout.ble_message_detail);
         Init_service();// 初始化后台服务
-        File file = new File("/sdcard/add.txt");
-//        addTxtToFileBuffered(file,"追加的内容");
-        addTxtToFileWrite(file,"filewrite");
     }
 
     @Override
@@ -194,6 +244,7 @@ public class Ble_starActivity extends Activity {
                 makeGattUpdateIntentFilter());
     }
 
+
     // UART service connected/disconnected
     private ServiceConnection mServiceConnection = new ServiceConnection() {
         // 与UART服务的连接建立
@@ -254,48 +305,20 @@ public class Ble_starActivity extends Activity {
             // 有数据可以接收
             if ((action.equals(UartService.ACTION_DATA_AVAILABLE))) {
                 byte[] rxValue = intent.getByteArrayExtra(UartService.EXTRA_DATA);
+                int i=0;
+                while(i<carDataList.size()){
+                    if(carDataList.get(i).isActive()) {
+                        carDataList.get(i).setReceived(true);
+                        carDataList.get(i).setRx_Len(rxValue.length);
+                        carDataList.get(i).setCanRX(rxValue);
+                        carDataList.get(i).getASCValue();
+                        informationCarAdapter.notifyDataSetChanged();
+                        break;
+                    }
+                    i++;
+                }
                 String Rx_str =Utils.bytesToHexString(rxValue) ;
-                indexreceive++;
-                //if (indexreceive<indexsend-1) indexreceive=indexsend;
-                if(indexreceive>indexcount )  {
-                    //handler.removeCallbacks(runnable);
-                    stopAnimation();
-                    return;
-                }else{
-                    //handler.sendEmptyMessageAtTime(1,5000);
-                    //handler.postDelayed(runnable, 4000);
-                }
-                messageList.get(indexreceive).setRx_Len(rxValue.length);
-                messageList.get(indexreceive).setCanRX(rxValue);
-                String Rx_value=messageList.get(indexreceive).getASCValue();
-                toastMessage(Rx_value);
-/*                if (messageList.get(indexreceive).isASC()==true){
-                    Rx_value=messageList.get(indexreceive).getASCValue();
-                }else{
-                    double value=messageList.get(indexreceive).getSignalvalue();
-                    Rx_value=String.valueOf(value).substring(0,3)+" "+messageList.get(indexreceive).getUnit();
-                }*/
-                // 收到发送
-                switch (indexreceive)
-                {
-                    case 1:
-                        settingDrawableTop(getApplicationContext(),vin_number,R.mipmap.car_check_scan_right,Rx_value,null);
-                        break;
-                    case 2:
-                        settingDrawableTop(getApplicationContext(),oil_number,R.mipmap.car_check_scan_right,Rx_value,null);
-                        break;
-                    case 3:
-                        settingDrawableTop(getApplicationContext(),mileage_number,R.mipmap.car_check_scan_right,Rx_value,null);
-                        break;
-                    case 4:
-                        settingDrawableTop(getApplicationContext(),voltage_number,R.mipmap.car_check_scan_right,Rx_value,null);
-                        break;
-                    case 5:
-                        settingDrawableTop(getApplicationContext(),car_number,R.mipmap.car_check_scan_right,Rx_value,null);
-                        break;
-
-                }
-                Log.e("----------",""+Rx_str);
+                toastMessage(Rx_str);
             }
             // 未知功能1Rx_str
             if (action.equals(UartService.ACTION_GATT_SERVICES_DISCOVERED)) {
@@ -336,15 +359,17 @@ public class Ble_starActivity extends Activity {
     }
     //
     //检测蓝牙是否开启并打开
-    public void sendBleMessage(int i)
+    public boolean sendBleMessage(CarInformationBean sig)
     {
 
-        if(null==mService || mService.mConnectionState!=2){
-            stopAnimation();
-            toastMessage("连接服务丢失");
-        }else{
-            byte[] bytes=messageList.get(i).getCanTX();
+        if(null!=mService && mService.mConnectionState==2){
+            byte[] bytes=sig.getCanTX();
             mService.writeRXCharacteristic(bytes);
+            return true;
+        }else{
+            //stopAnimation();
+            toastMessage("请连接蓝牙，服务丢失");
+            return false;
         }
     }
 private void requestpermission(){
@@ -371,6 +396,9 @@ private void requestpermission(){
 }
     //页面初始化代码
     private void initView() {
+        cancle_mode=findViewById(R.id.cancle_mode);
+        set_mode=findViewById(R.id.set_mode);
+        mRecycleview=findViewById(R.id.car_list_information);
         tv_car_start_check=findViewById(R.id.tv_car_start_check);
         rl_score_info = findViewById(R.id.rl_score_info);
         frameLayout = findViewById(R.id.dialog);
@@ -383,11 +411,11 @@ private void requestpermission(){
         dialog_semi_circle = (ImageView) findViewById(R.id.loding_b);
         dialog_semi_circle_smill = (ImageView) findViewById(R.id.loding_1);
         //数据
-        mileage_number= findViewById(R.id.mileage_txt_number);
-        oil_number= findViewById(R.id.car_oil_txt_number);
-        car_number=findViewById(R.id.car_txt_modle);
-        voltage_number=findViewById(R.id.voltage_txt_number);
-        vin_number=findViewById(R.id.vin_txt_number);
+//        mileage_number= findViewById(R.id.mileage_txt_number);
+//        oil_number= findViewById(R.id.car_oil_txt_number);
+//        car_number=findViewById(R.id.car_txt_modle);
+//        voltage_number=findViewById(R.id.voltage_txt_number);
+//        vin_number=findViewById(R.id.vin_txt_number);
         ble_State=findViewById(R.id.lanya);
         radioMQB= (RadioButton) findViewById(R.id.radio_MQB);
         radioPQ = (RadioButton) findViewById(R.id.radio_PQ);
@@ -418,10 +446,11 @@ private void requestpermission(){
     }
     public void stopAnimation() {
         leftCheckLight.setVisibility(View.GONE);
+        rightCheckLight.setVisibility(View.GONE);
         //车身扫描
         //carCheckLightBody.setImageResource(R.drawable.car_check_light_body);
         //animationDrawableBody = (AnimationDrawable) carCheckLightBody.getDrawable();
-        animationDrawableBody.stop();
+        if(animationDrawableBody!=null) animationDrawableBody.stop();
         //车摆动
         //leftCheckLight.startAnimation(translateAnimationLeft);
     }
@@ -491,7 +520,8 @@ private void requestpermission(){
             @Override
             public void onClick(View v) {
                 toastMessage("MQB 平台");
-                initDate();
+                updateData();
+                //informationCarAdapter.notifyDataSetChanged();
             }
         });
         radioPQ.setOnClickListener(new View.OnClickListener() {
@@ -499,7 +529,8 @@ private void requestpermission(){
             @Override
             public void onClick(View v) {
                 toastMessage("PQ 平台");
-                initDate();
+                updateData();
+                //informationCarAdapter.notifyDataSetChanged();
             }
         });
         radioGM.setOnClickListener(new View.OnClickListener() {
@@ -507,11 +538,25 @@ private void requestpermission(){
             @Override
             public void onClick(View v) {
                 toastMessage("GM 平台");
-                initDate();
+                updateData();
+                //informationCarAdapter.notifyDataSetChanged();
             }
         });
 
-
+        //設置運輸模式
+        cancle_mode.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if(sendBleMessage(SigCancelTRA))toastMessage("取消运算模式");;
+            }
+        });
+        //取消設置運輸模式
+        set_mode.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if(sendBleMessage(SigSetTRA))toastMessage("设置运算模式");;
+            }
+        });
 
 
 
@@ -527,80 +572,99 @@ private void requestpermission(){
 
     }
 
-    public void initDate()
+    public void initData()
     {
-        String sendmessage="";
+        //Toast.makeText(getApplicationContext()," kakak",Toast.LENGTH_SHORT).show();
+        //模擬車輛信息數據
+        carDataList.add(SigVIN);
+        carDataList.add(SigODO);
+        carDataList.add(SigTank);
+        updateData();
+/*        String sendmessage="";
         byte[] Tx_value;
         if (radioMQB.isChecked()) sendmessage="a";
         if (radioPQ.isChecked()) sendmessage="f";
         if (radioGM.isChecked())sendmessage="k";
         Tx_value = sendmessage.getBytes();
-        message1.setCanTX(Tx_value);
-        message1.setASC(true);
-        message1.setStartbyte(2);
-        message1.setLength(7);
+        SigVIN.setCanTX(Tx_value);
+        SigVIN.setASC(true);
+        SigVIN.setStartbyte(2);
+        SigVIN.setLength(7);
         if (radioMQB.isChecked()) sendmessage="b";
         if (radioPQ.isChecked()) sendmessage="g";
         if (radioGM.isChecked()) sendmessage="m";
         Tx_value = sendmessage.getBytes();
-        message2.setCanTX(Tx_value);
-        //message2.setCanTX(new byte[] {0x41,0x50,0x50,0x06,(byte) 0xb7,0x1,(byte) 0xcc,(byte) 0xcc,0xa,0xd});
-        message2.setASC(true);
-        message2.setStartbyte(2);
-        message2.setStartbit(0);
-        message2.setLength(20);
-        message2.setUnit("km");
-        message2.setOffset(0);
-        message2.setFactor(1);
+        SigODO.setCanTX(Tx_value);
+        SigODO.setASC(true);
+        SigODO.setStartbyte(2);
+        SigODO.setStartbit(0);
+        SigODO.setLength(20);
+        SigODO.setUnit("km");
+        SigODO.setOffset(0);
+        SigODO.setFactor(1);
         if (radioMQB.isChecked()) sendmessage="c";
         if (radioPQ.isChecked()) sendmessage="h";
         if (radioGM.isChecked()) sendmessage="j";
         Tx_value = sendmessage.getBytes();
-        message3.setCanTX(Tx_value);
-        //message3.setCanTX(new byte[] {0x41,0x50,0x50,0x03,(byte) 0xb7,0x1,(byte) 0xcc,(byte) 0xcc,0xa,0xd});
-        message3.setASC(true);
-        message3.setStartbyte(6);
-        message3.setStartbit(0);
-        message3.setLength(8);
-        message3.setUnit("L");
-        message3.setOffset(5);
-        message3.setFactor(0.05);
-        /*if (radioMQB.isChecked())  message4.setCanTX(new byte[] {0x14});
-        if (radioPQ.isChecked())  message4.setCanTX(new byte[] {0x24});
-        if (radioGM.isChecked())  message4.setCanTX(new byte[] {0x34});
-        //message4.setCanTX(new byte[] {0x41,0x50,0x50,0x04,(byte) 0xb7,0x1,(byte) 0xcc,(byte) 0xcc,0xa,0xd});
-        message4.setASC(true);
-        message4.setStartbyte(6);
-        message4.setStartbit(0);
-        message4.setLength(8);
-        message4.setUnit("V");
-        message4.setOffset(5);
-        message4.setFactor(0.05);
-        if (radioMQB.isChecked())  message5.setCanTX(new byte[] {0x16});
-        if (radioPQ.isChecked())  message5.setCanTX(new byte[] {0x26});
-        if (radioGM.isChecked())  message5.setCanTX(new byte[] {0x36});
-        //message5.setCanTX(new byte[] {0x41,0x50,0x50,0x05,(byte) 0xb7,0x1,(byte) 0xcc,(byte) 0xcc,0xa,0xd});
-        message5.setASC(true);
-        message5.setStartbyte(6);
-        message5.setStartbit(0);
-        message5.setLength(8);
-        message5.setUnit("km");
-        message5.setOffset(5);
-        message5.setFactor(0.05);*/
-        messageList.add(message1);
-        messageList.add(message2);
-        messageList.add(message3);
-        messageList.add(message4);
-        messageList.add(message5);
-        mileage_number.setText("");
-        oil_number.setText("");
-        car_number.setText("");
-        voltage_number.setText("");
-        vin_number.setText("");
+        SigTank.setCanTX(Tx_value);
+        SigTank.setASC(true);
+        SigTank.setStartbyte(6);
+        SigTank.setStartbit(0);
+        SigTank.setLength(8);
+        SigTank.setUnit("L");
+        SigTank.setOffset(5);
+        SigTank.setFactor(0.05);*/
+
+
+        //初始话数据扫描动态图
+//        settingDrawableTop(getApplicationContext(),vin_number,R.mipmap.car_check_scan_right,"");
+
+        //車輛信息列表
+        LinearLayoutManager layoutManager = new LinearLayoutManager(this );
+//设置布局管理器
+        mRecycleview.setLayoutManager(layoutManager);
+//设置为垂直布局，这也是默认的
+        layoutManager.setOrientation(OrientationHelper. VERTICAL);
+//设置Adapter
+        Log.e("-------","-----------mRecycleview");
+        informationCarAdapter=new InformationCarAdapter(carDataList);
+        mRecycleview.setAdapter(informationCarAdapter);
+        //设置分隔线
+        mRecycleview.addItemDecoration( new DividerGridItemDecoration(this ));
+//设置增加或删除条目的动画
+        mRecycleview.setItemAnimator( new DefaultItemAnimator());
+
+
+
+
         //初始话数据扫描动态图
         //settingDrawableTop(getApplicationContext(),vin_number,R.mipmap.car_check_scan_right,"",new Object());
 
 
+    }
+    public void updateData()
+    {
+        if (radioMQB.isChecked()){
+            carDataList.get(0).setCanTX("a".getBytes());
+            carDataList.get(1).setCanTX("b".getBytes());
+            carDataList.get(2).setCanTX("c".getBytes());
+            SigSetTRA.setCanTX("d".getBytes());
+            SigCancelTRA.setCanTX("e".getBytes());
+        }
+        if (radioPQ.isChecked()){
+            carDataList.get(0).setCanTX("f".getBytes());
+            carDataList.get(1).setCanTX("g".getBytes());
+            carDataList.get(2).setCanTX("h".getBytes());
+            SigSetTRA.setCanTX("i".getBytes());
+            SigCancelTRA.setCanTX("j".getBytes());
+        }
+        if (radioGM.isChecked()){
+            carDataList.get(0).setCanTX("k".getBytes());
+            carDataList.get(1).setCanTX("l".getBytes());
+            carDataList.get(2).setCanTX("m".getBytes());
+            SigSetTRA.setCanTX("n".getBytes());
+            SigCancelTRA.setCanTX("o".getBytes());
+        }
     }
 
     public  void settingDrawableTop(Context context, TextView view , int resourcesDrawable, String  resourcesString,Object o) {
@@ -642,12 +706,20 @@ private void requestpermission(){
                 dialog_fragment.setVisibility(View.GONE);
                 //checkBleIsConnectPermission();
                 if(null==mService) {
-                    toastMessage("service丢失");
+                    toastMessage("蓝牙服务丢失");
                 }else{
-                    indexsend=0;
-                    indexreceive=0;
+                    for(int i=0;i<carDataList.size();i++){
+                        carDataList.get(i).setReceived(false);
+                        carDataList.get(i).setActive(false);
+                        carDataList.get(i).setSendtimes(0);
+                        carDataList.get(i).setRx_Len(0);
+                    }
+                    carDataList.get(0).setActive(true);
+                    sendBleMessage(carDataList.get(0));
+                    carDataList.get(0).setSendtimes(1);
                     handler.postDelayed(runnable, DELAY);
                     startAnimation();
+                    informationCarAdapter.notifyDataSetChanged();
                 }
             }
 
