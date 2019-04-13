@@ -117,59 +117,80 @@ public class Ble_starActivity extends Activity {
     CarInformationBean SigCancelTRA=new CarInformationBean("UnTRA","非运输模式");
 
     TextView ble_State;
-    Handler handler=new Handler();
-    Runnable runnable=new Runnable(){
+    private boolean isRunCloase=false;
+    Handler handler=new Handler()
+    {
         @Override
-        public void run() {
-            // TODO Auto-generated method stub
-            //要做的事情，这里再次调用此Runnable对象，以实现每两秒实现一次的定时器操作
-            int i=0;
-            while(i<carDataList.size()){
-                if(carDataList.get(i).isActive()) {
-                    carDataList.get(i).setActive(false);
-                    break;
-                }
-                i++;
-            }
-            int j=i+1;
-            int k=j%carDataList.size();
-            boolean sendreturn=false;
-            while(j<carDataList.size()+i+1){
-                k=j%carDataList.size();
-                if(!carDataList.get(k).isReceived() && carDataList.get(k).getSendtimes()<TASKTIMES) {
-                    carDataList.get(k).setActive(true);
-                    sendreturn=sendBleMessage(carDataList.get(k));
-                    carDataList.get(k).setSendtimes(carDataList.get(k).getSendtimes()+1);
-                    handler.postDelayed(this, DELAY);
-                    break;
-                }
-                j++;
-            }
-            if(!sendreturn  || j==(carDataList.size()+i+1) ){
-                boolean allreceived=true;
-                DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-                String record=df.format(new Date());
-                for(int m=0;m<carDataList.size();m++){
-                    allreceived&=carDataList.get(m).isReceived();
-                    record+="\t"+carDataList.get(m).getASCValue();
-                };
-                if(allreceived){
-                    toastMessage("完成读取");
-                    File file = new File("/sdcard/vin.csv");
-                    //addTxtToFileBuffered(file,"追加的内容");
-                    addTxtToFileWrite(file,record);
-                    file = new File("/sdcard/vin.txt");
-                    //addTxtToFileBuffered(file,"追加的内容");
-                    addTxtToFileWrite(file,record);
-                }else{
-                    toastMessage("未完全读取");
-                }
-                handler.removeCallbacks(this);
-                stopAnimation();
+        public void handleMessage(Message msg) {
+            super.handleMessage(msg);
+            if(msg.what==9)
+            {
+                isRunCloase=false;
 
             }
         }
     };
+    Runnable runnable;
+
+    {
+        runnable = new Runnable() {
+            @Override
+            public void run() {
+                // TODO Auto-generated method stub
+                //要做的事情，这里再次调用此Runnable对象，以实现每两秒实现一次的定时器操作
+                int i = 0;
+                while (i < carDataList.size()) {
+                    if (carDataList.get(i).isActive()) {
+                        carDataList.get(i).setActive(false);
+                        break;
+                    }
+                    i++;
+                }
+                int j = i + 1;
+                int k = j % carDataList.size();
+                boolean sendreturn = false;
+                while (j < carDataList.size() + i + 1) {
+                    k = j % carDataList.size();
+                    if (!carDataList.get(k).isReceived() && carDataList.get(k).getSendtimes() < TASKTIMES) {
+                        carDataList.get(k).setActive(true);
+                        sendreturn = sendBleMessage(carDataList.get(k));
+                        carDataList.get(k).setSendtimes(carDataList.get(k).getSendtimes() + 1);
+                        handler.postDelayed(this, DELAY);
+                        break;
+                    }
+                    j++;
+                }
+                if (!sendreturn || j == (carDataList.size() + i + 1)) {
+                    boolean allreceived = true;
+                    DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                    String record = df.format(new Date());
+                    for (int m = 0; m < carDataList.size(); m++) {
+                        allreceived &= carDataList.get(m).isReceived();
+                        record += "," + carDataList.get(m).getASCValue();
+                    }
+                    ;
+                    if (allreceived) {
+                        toastMessage("完成读取");
+                        File file = new File("/sdcard/vin.csv");
+                        if(!file .exists())addTxtToFileWrite(file, "读取时间,车辆识别号,车辆油量,车辆里程");
+                        //addTxtToFileBuffered(file,"追加的内容");
+                        addTxtToFileWrite(file, record);
+                        file = new File("/sdcard/vin.txt");
+                        if(!file .exists())addTxtToFileWrite(file, "读取时间,车辆识别号,车辆油量,车辆里程");
+                        //addTxtToFileBuffered(file,"追加的内容");
+                        addTxtToFileWrite(file, record);
+                    } else {
+
+                        toastMessage("未完全读取");
+                    }
+                    handler.removeCallbacks(this);
+                    stopAnimation();
+
+                }
+            }
+        };
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -305,19 +326,27 @@ public class Ble_starActivity extends Activity {
             // 有数据可以接收
             if ((action.equals(UartService.ACTION_DATA_AVAILABLE))) {
                 byte[] rxValue = intent.getByteArrayExtra(UartService.EXTRA_DATA);
+                String Rx_str =new String(rxValue) ;
                 int i=0;
+                if(carDataList.get(i).isActive() && Rx_str.toUpperCase().indexOf("_V")>0) {
+                    carDataList.get(i).setReceived(true);
+                    carDataList.get(i).setRx_Len(rxValue.length-2);
+                    carDataList.get(i).setCanRX(rxValue);
+                    carDataList.get(i).getASCValue();
+
+                }
+                i++;
                 while(i<carDataList.size()){
-                    if(carDataList.get(i).isActive()) {
+                    if(carDataList.get(i).isActive() && Rx_str.toUpperCase().indexOf("_"+carDataList.get(i).getUnit().toUpperCase())>0 ) {
                         carDataList.get(i).setReceived(true);
                         carDataList.get(i).setRx_Len(rxValue.length);
                         carDataList.get(i).setCanRX(rxValue);
                         carDataList.get(i).getASCValue();
-                        informationCarAdapter.notifyDataSetChanged();
                         break;
                     }
                     i++;
                 }
-                String Rx_str =Utils.bytesToHexString(rxValue) ;
+                informationCarAdapter.notifyDataSetChanged();
                 toastMessage(Rx_str);
             }
             // 未知功能1Rx_str
@@ -445,14 +474,18 @@ private void requestpermission(){
         leftCheckLight.startAnimation(translateAnimationLeft);
     }
     public void stopAnimation() {
+        rightCheckLight.clearAnimation();
+        leftCheckLight.clearAnimation();
+
         leftCheckLight.setVisibility(View.GONE);
         rightCheckLight.setVisibility(View.GONE);
+        handler.sendEmptyMessage(9);
         //车身扫描
-        //carCheckLightBody.setImageResource(R.drawable.car_check_light_body);
         //animationDrawableBody = (AnimationDrawable) carCheckLightBody.getDrawable();
-        if(animationDrawableBody!=null) animationDrawableBody.stop();
-        //车摆动
-        //leftCheckLight.startAnimation(translateAnimationLeft);
+        if(animationDrawableBody!=null) {
+            animationDrawableBody.stop();
+            carCheckLightBody.setImageResource(R.mipmap.control_car_normal_bg);
+        }
     }
 
     public void initClick() {
@@ -576,25 +609,11 @@ private void requestpermission(){
     {
         //Toast.makeText(getApplicationContext()," kakak",Toast.LENGTH_SHORT).show();
         //模擬車輛信息數據
-        carDataList.add(SigVIN);
-        carDataList.add(SigODO);
-        carDataList.add(SigTank);
-        updateData();
-/*        String sendmessage="";
-        byte[] Tx_value;
-        if (radioMQB.isChecked()) sendmessage="a";
-        if (radioPQ.isChecked()) sendmessage="f";
-        if (radioGM.isChecked())sendmessage="k";
-        Tx_value = sendmessage.getBytes();
-        SigVIN.setCanTX(Tx_value);
         SigVIN.setASC(true);
         SigVIN.setStartbyte(2);
         SigVIN.setLength(7);
-        if (radioMQB.isChecked()) sendmessage="b";
-        if (radioPQ.isChecked()) sendmessage="g";
-        if (radioGM.isChecked()) sendmessage="m";
-        Tx_value = sendmessage.getBytes();
-        SigODO.setCanTX(Tx_value);
+
+
         SigODO.setASC(true);
         SigODO.setStartbyte(2);
         SigODO.setStartbit(0);
@@ -602,19 +621,19 @@ private void requestpermission(){
         SigODO.setUnit("km");
         SigODO.setOffset(0);
         SigODO.setFactor(1);
-        if (radioMQB.isChecked()) sendmessage="c";
-        if (radioPQ.isChecked()) sendmessage="h";
-        if (radioGM.isChecked()) sendmessage="j";
-        Tx_value = sendmessage.getBytes();
-        SigTank.setCanTX(Tx_value);
+
         SigTank.setASC(true);
         SigTank.setStartbyte(6);
         SigTank.setStartbit(0);
         SigTank.setLength(8);
         SigTank.setUnit("L");
         SigTank.setOffset(5);
-        SigTank.setFactor(0.05);*/
+        SigTank.setFactor(0.05);
 
+        carDataList.add(SigVIN);
+        carDataList.add(SigTank);
+        carDataList.add(SigODO);
+        updateData();
 
         //初始话数据扫描动态图
 //        settingDrawableTop(getApplicationContext(),vin_number,R.mipmap.car_check_scan_right,"");
@@ -704,10 +723,16 @@ private void requestpermission(){
             }else if(tv_car_start_check.getText().equals("读取"))
             {
                 dialog_fragment.setVisibility(View.GONE);
+                if(isRunCloase)
+                {
+                    return;
+                }
+                isRunCloase=true;
                 //checkBleIsConnectPermission();
                 if(null==mService) {
                     toastMessage("蓝牙服务丢失");
                 }else{
+                    handler.removeCallbacks(runnable);
                     for(int i=0;i<carDataList.size();i++){
                         carDataList.get(i).setReceived(false);
                         carDataList.get(i).setActive(false);

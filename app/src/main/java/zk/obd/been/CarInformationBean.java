@@ -100,7 +100,7 @@ public class CarInformationBean {
 
     public String getASCValue() {
         String RxASCValue = new String(canRX);
-        if(Rx_Len>0) ASCValue=RxASCValue.substring(0, Rx_Len);
+        if(Rx_Len>0) ASCValue=RxASCValue.substring(0, Rx_Len).replaceAll("_"," ");
         else ASCValue="--";
         //VIN=RxVIN.substring(7, 14)+RxVIN.substring(7+18, 14+18)+RxVIN.substring(7+18*2, 14+18*2)+RxVIN.substring(7+18*3, 14+18*3);
         return ASCValue;
