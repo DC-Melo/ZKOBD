@@ -13,6 +13,8 @@ import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.graphics.drawable.AnimationDrawable;
 import android.graphics.drawable.Drawable;
+import android.media.MediaScannerConnection;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
@@ -31,6 +33,7 @@ import android.view.Window;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.view.animation.TranslateAnimation;
+import android.webkit.MimeTypeMap;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.FrameLayout;
@@ -59,7 +62,7 @@ import zk.obd.been.CarInformationBean;
 //test main
 //second
 public class Ble_starActivity extends Activity {
-    public final static int DELAY = 2000;
+    public final static int DELAY = 4000;
     public static final int EXTERNAL_STORAGE_REQ_CODE = 10 ;
     int indexsend=0;
     int indexreceive=0;
@@ -82,6 +85,7 @@ public class Ble_starActivity extends Activity {
     // 页面
     TextView tv_car_start_check;
     RelativeLayout rl_score_info;
+    ImageView startbotton;
     FrameLayout frameLayout;
     ImageView rightCheckLight;
     ImageView leftCheckLight;
@@ -179,6 +183,9 @@ public class Ble_starActivity extends Activity {
                         if(!file .exists())addTxtToFileWrite(file, "读取时间,车辆识别号,车辆油量,车辆里程");
                         //addTxtToFileBuffered(file,"追加的内容");
                         addTxtToFileWrite(file, record);
+                        scanFile(Ble_starActivity.this,"/sdcard/vin.txt");
+                        scanFile(Ble_starActivity.this,"/sdcard/vin.csv");
+
                     } else {
 
                         toastMessage("未完全读取");
@@ -244,6 +251,8 @@ public class Ble_starActivity extends Activity {
             writer = new FileWriter(file, true);
             writer.write(content);//换行.write(content);
             writer.write("\n");
+            writer.close();
+            writer.flush();
         } catch (IOException e) {
             e.printStackTrace();
         } finally {
@@ -303,7 +312,7 @@ public class Ble_starActivity extends Activity {
             // 建立连接
             if (action.equals(UartService.ACTION_GATT_CONNECTED)) {
                 System.out.println("BroadcastReceiver:ACTION_GATT_CONNECTED");
-                ble_State.setText("已建立连接");
+                ble_State.setText("已连接");
                 tv_car_start_check.setText("读取");
                 toastMessage("设备"+ mDevice.getName()+"连接成功");
                 String currentDateTimeString = DateFormat.getTimeInstance().format(new Date());
@@ -314,9 +323,9 @@ public class Ble_starActivity extends Activity {
             // 断开连接
             if (action.equals(UartService.ACTION_GATT_DISCONNECTED)) {
                 System.out.println("BroadcastReceiver:ACTION_GATT_DISCONNECTED");
-                ble_State.setText("已断开连接");
+                ble_State.setText("已断开");
                 String currentDateTimeString = DateFormat.getTimeInstance().format(new Date());
-                ble_State.setText("搜索");
+                ble_State.setText("已断开");
                 tv_car_start_check.setText("连接");
                 toastMessage("未连接上"+ mDevice.getName()+"，请重新连接");
                 listAdapter.add("[" + currentDateTimeString + "] 取消连接: " + mDevice.getName());
@@ -327,8 +336,11 @@ public class Ble_starActivity extends Activity {
             if ((action.equals(UartService.ACTION_DATA_AVAILABLE))) {
                 byte[] rxValue = intent.getByteArrayExtra(UartService.EXTRA_DATA);
                 String Rx_str =new String(rxValue) ;
+                System.out.println("xianzai收到ASC数据:"+Utils.bytesToHexString(rxValue));
+                System.out.println("xianzai收到ASC数据:"+Rx_str);
+                toastMessage(Rx_str);
                 int i=0;
-                if(carDataList.get(i).isActive() && Rx_str.toUpperCase().indexOf("_V")>0) {
+                if(Rx_str.toUpperCase().indexOf("_V")>0) {
                     carDataList.get(i).setReceived(true);
                     carDataList.get(i).setRx_Len(rxValue.length-2);
                     carDataList.get(i).setCanRX(rxValue);
@@ -337,7 +349,7 @@ public class Ble_starActivity extends Activity {
                 }
                 i++;
                 while(i<carDataList.size()){
-                    if(carDataList.get(i).isActive() && Rx_str.toUpperCase().indexOf("_"+carDataList.get(i).getUnit().toUpperCase())>0 ) {
+                    if( Rx_str.toUpperCase().indexOf("_"+carDataList.get(i).getUnit().toUpperCase())>0 ) {
                         carDataList.get(i).setReceived(true);
                         carDataList.get(i).setRx_Len(rxValue.length);
                         carDataList.get(i).setCanRX(rxValue);
@@ -347,7 +359,7 @@ public class Ble_starActivity extends Activity {
                     i++;
                 }
                 informationCarAdapter.notifyDataSetChanged();
-                toastMessage(Rx_str);
+
             }
             // 未知功能1Rx_str
             if (action.equals(UartService.ACTION_GATT_SERVICES_DISCOVERED)) {
@@ -430,6 +442,7 @@ private void requestpermission(){
         mRecycleview=findViewById(R.id.car_list_information);
         tv_car_start_check=findViewById(R.id.tv_car_start_check);
         rl_score_info = findViewById(R.id.rl_score_info);
+        startbotton=findViewById(R.id.iv_score_bg);
         frameLayout = findViewById(R.id.dialog);
         carCheckLightBody = findViewById(R.id.iv_control_normal_bg);
         leftCheckLight = (ImageView) findViewById(R.id.iv_scan_left);
@@ -535,9 +548,18 @@ private void requestpermission(){
                 rightCheckLight.setAnimation(right_translateAnimation);
             }
         });
+        //检测rl_score_info
+        ble_State.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
 
-        //检测
-        rl_score_info.setOnClickListener(new View.OnClickListener() {
+                //断开蓝牙
+                ble_State.getText().equals("已连接");
+                toastMessage("断开连接");
+            }
+        });
+        //检测rl_score_info
+        startbotton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
 
@@ -580,14 +602,14 @@ private void requestpermission(){
         cancle_mode.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if(sendBleMessage(SigCancelTRA))toastMessage("取消运算模式");;
+                if(sendBleMessage(SigCancelTRA))toastMessage("取消运输模式");;
             }
         });
         //取消設置運輸模式
         set_mode.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if(sendBleMessage(SigSetTRA))toastMessage("设置运算模式");;
+                if(sendBleMessage(SigSetTRA))toastMessage("设置运输模式");;
             }
         });
 
@@ -669,6 +691,7 @@ private void requestpermission(){
             carDataList.get(2).setCanTX("c".getBytes());
             SigSetTRA.setCanTX("d".getBytes());
             SigCancelTRA.setCanTX("e".getBytes());
+
         }
         if (radioPQ.isChecked()){
             carDataList.get(0).setCanTX("f".getBytes());
@@ -685,7 +708,19 @@ private void requestpermission(){
             SigCancelTRA.setCanTX("o".getBytes());
         }
     }
-
+    public void scanFile(Context context, String filePath) {
+        try {
+            MediaScannerConnection.scanFile(context, new String[]{filePath}, null,
+                    new MediaScannerConnection.OnScanCompletedListener() {
+                        public void onScanCompleted(String path, Uri uri) {
+                            Log.i("*******", "Scanned " + path + ":");
+                            Log.i("*******", "-> uri=" + uri);
+                        }
+                    });
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
     public  void settingDrawableTop(Context context, TextView view , int resourcesDrawable, String  resourcesString,Object o) {
         view.setVisibility(View.VISIBLE);
         Drawable drawable = null;
