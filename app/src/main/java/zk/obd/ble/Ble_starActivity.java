@@ -62,7 +62,7 @@ import zk.obd.been.CarInformationBean;
 //test main
 //second
 public class Ble_starActivity extends Activity {
-    public final static int DELAY = 4000;
+    public final static int DELAY = 2000;
     public static final int EXTERNAL_STORAGE_REQ_CODE = 10 ;
     int indexsend=0;
     int indexreceive=0;
@@ -312,7 +312,7 @@ public class Ble_starActivity extends Activity {
             // 建立连接
             if (action.equals(UartService.ACTION_GATT_CONNECTED)) {
                 System.out.println("BroadcastReceiver:ACTION_GATT_CONNECTED");
-                ble_State.setText("已连接");
+                ble_State.setText("已连接"+mDevice.getName());
                 tv_car_start_check.setText("读取");
                 toastMessage("设备"+ mDevice.getName()+"连接成功");
                 String currentDateTimeString = DateFormat.getTimeInstance().format(new Date());
@@ -554,8 +554,14 @@ private void requestpermission(){
             public void onClick(View v) {
 
                 //断开蓝牙
-                ble_State.getText().equals("已连接");
-                toastMessage("断开连接");
+                if(ble_State.getText().toString().contains("已连接")){
+                    if (mDevice != null) {
+                        // 断开连接
+                        mService.disconnect();
+                        toastMessage("断开连接");
+                    }
+                }
+
             }
         });
         //检测rl_score_info
