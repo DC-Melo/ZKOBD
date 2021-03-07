@@ -308,16 +308,16 @@ public class UartService extends Service {
      */
     // DA14580的TX_SERVICE_UUID=ffe5
     // PW0316的TX_SERVICE_UUID=ffe5
-    public static final UUID TX_SERVICE_UUID = UUID.fromString("0000ffe5-0000-1000-8000-00805f9b34fb");
-    // DA14580的RX_SERVICE_UUID=fff0
-    // PW0316的RX_SERVICE_UUID=ffe0
-    public static final UUID RX_SERVICE_UUID = UUID.fromString("0000ffe0-0000-1000-8000-00805f9b34fb");
-    // DA14580的Rx_CHARACTERISTIC_UUID=fff1
-    // PW0316的 Rx_CHARACTERISTIC_UUID=ffe9
-    public static final UUID RX_CHAR_UUID = UUID.fromString("0000ffe9-0000-1000-8000-00805f9b34fb");
-    // DA14580的Tx_CHARACTERISTIC_UUID=fff4，notify方式。
-    // PW0316的 Tx_CHARACTERISTIC_UUID=ffe4
-    public static final UUID TX_CHAR_UUID = UUID.fromString("0000ffe4-0000-1000-8000-00805f9b34fb");
+// PW02的TX_SERVICE_UUID=0783b03e-8535-b5a0-7140-a304d2495cb7
+    public static final UUID TX_SERVICE_UUID = UUID.fromString("0783b03e-8535-b5a0-7140-a304d2495cb7");
+
+    // PW02的RX_SERVICE_UUID=0783b03e-8535-b5a0-7140-a304d2495cb7
+    public static final UUID RX_SERVICE_UUID = UUID.fromString("0783b03e-8535-b5a0-7140-a304d2495cb7");
+
+    // PW02的 Rx_CHARACTERISTIC_UUID=0783b03e-8535-b5a0-7140-a304d2495cba        WRITE NO RESPONSE
+    public static final UUID RX_CHAR_UUID = UUID.fromString("0783b03e-8535-b5a0-7140-a304d2495cba");
+    // PW02的Tx_CHARACTERISTIC_UUID=0783b03e-8535-b5a0-7140-a304d2495cb8        NOTIFY
+    public static final UUID TX_CHAR_UUID = UUID.fromString("0783b03e-8535-b5a0-7140-a304d2495cb8");
 
     public void enableTXNotification() {
 
